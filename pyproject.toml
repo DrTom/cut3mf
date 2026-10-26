@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[project]
+name = "cut3mf"
+dynamic = ["version"]
+description = "Cut a slab off one face of a 3MF/STL model before slicing, e.g. a helper plate holding embedded text together"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Thomas Schank" }]
+requires-python = ">=3.10"
+keywords = ["3mf", "stl", "3d-printing", "mesh", "slicer", "onshape", "bambu"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Manufacturing",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+]
+dependencies = [
+    "trimesh>=4.0",
+    "manifold3d>=3.0",
+    "numpy",
+    "lxml",
+    "networkx",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[project.scripts]
+cut3mf = "cut3mf.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/DrTom/cut3mf"
+Issues = "https://github.com/DrTom/cut3mf/issues"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.version.raw-options]
+local_scheme = "no-local-version"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
