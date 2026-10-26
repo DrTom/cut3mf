@@ -29,7 +29,7 @@ def _model(path: Path, units: str = "millimeters", scale: float = 1.0) -> Path:
         s = s.scaled(scale)
     s.export(path)
     if units != "millimeters":
-        # trimesh always writes unit="millimeter"; patch it like Onshape's export.
+        # trimesh always writes unit="millimeter"; patch it like a CAD tool exporting in meters.
         with zipfile.ZipFile(path) as z:
             files = {n: z.read(n) for n in z.namelist()}
         files["3D/3dmodel.model"] = files["3D/3dmodel.model"].replace(
@@ -60,7 +60,7 @@ def test_top_plate_removed(tmp_path):
     assert body.volume == pytest.approx(40 * 20 * 10, rel=1e-3)
 
 
-def test_meter_units_from_onshape(tmp_path):
+def test_meter_units(tmp_path):
     src = _model(tmp_path / "m.3mf", units="meter", scale=0.001)
     r = cut_file(src)
     assert r.extreme == pytest.approx(11.0, abs=0.01)        # read as mm

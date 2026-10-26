@@ -68,7 +68,7 @@ def load_scene(path: Path) -> trimesh.Scene:
     """Load a mesh file as a scene in millimeters."""
     scene = trimesh.load(path, force="scene")
     if scene.units and scene.units not in _MM:
-        # Onshape writes 3MF in meters, for example.
+        # Some CAD tools (e.g. Onshape) write 3MF in meters.
         log.info("converting units: %s -> millimeters", scene.units)
         scene = scene.convert_units("millimeters")
     elif not scene.units:
