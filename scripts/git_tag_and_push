@@ -28,6 +28,10 @@ if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
   exit 1
 fi
 # The tests must pass before a version goes out.
+if ! "${python}" -c 'import pytest, cut3mf' 2>/dev/null; then
+  echo "error: pytest or cut3mf not installed in ${python}; run: pip install -e \".[test]\"" >&2
+  exit 1
+fi
 "${python}" -m pytest -q
 git fetch -q "${remote}" main 2>/dev/null || true
 if ! git merge-base --is-ancestor HEAD "${remote}/main" 2>/dev/null; then
