@@ -62,15 +62,15 @@ pytest
 
 ## Releasing
 
-Releases are published to PyPI from GitHub Actions using trusted publishing.
-Tag a version and publish a GitHub release:
+Releases are published to PyPI by GitHub Actions using trusted publishing.
+Bump `version` in `pyproject.toml`, commit, then run:
 
 ```bash
-git tag v0.1.0 && git push origin v0.1.0
-gh release create v0.1.0 --generate-notes
+scripts/git_tag_and_push
 ```
 
-The version number comes from the git tag.
+The script runs the tests, tags the commit as `v<version>` and pushes the tag;
+the publish workflow builds and uploads that version.
 
 ## License
 

@@ -1,10 +1,10 @@
 [build-system]
-requires = ["hatchling", "hatch-vcs"]
+requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
 name = "cut3mf"
-dynamic = ["version"]
+version = "0.1.0"
 description = "Cut a slab off one face of a 3MF/STL model before slicing, e.g. a helper plate holding embedded text together"
 readme = "README.md"
 license = "MIT"
@@ -37,12 +37,6 @@ cut3mf = "cut3mf.cli:main"
 [project.urls]
 Homepage = "https://github.com/DrTom/cut3mf"
 Issues = "https://github.com/DrTom/cut3mf/issues"
-
-[tool.hatch.version]
-source = "vcs"
-
-[tool.hatch.version.raw-options]
-local_scheme = "no-local-version"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

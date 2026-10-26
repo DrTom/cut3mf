@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Tag the current commit with the version from pyproject.toml and push the tag.
+# The GitHub workflow (.github/workflows/publish.yml) then builds and publishes
+# that version to PyPI via Trusted Publishing.
+#
+# Usage: scripts/git_tag_and_push [remote]     (default remote: origin)
+set -euo pipefail
+
+cd "$(dirname "${BASH_SOURCE[0]}")/.."
+remote="${1:-origin}"
+
+# Prefer the project's virtualenv (pip install -e ".[test]").
+if [ -x .venv/bin/python ]; then
+  python=.venv/bin/python
+else
+  python=python3
+fi
+
+version="$("${python}" -c 'import tomllib; print(tomllib.load(open("pyproject.toml", "rb"))["project"]["version"])')"
+tag="v${version}"
+
+if [ -n "$(git status --porcelain)" ]; then
+  echo "error: working tree is not clean; commit or stash first" >&2
+  exit 1
+fi
+if git rev-parse -q --verify "refs/tags/${tag}" >/dev/null; then
+  echo "error: tag ${tag} already exists (bump the version in pyproject.toml)" >&2
+  exit 1
+fi
+# The tests must pass before a version goes out.
+"${python}" -m pytest -q
+git fetch -q "${remote}" main 2>/dev/null || true
+if ! git merge-base --is-ancestor HEAD "${remote}/main" 2>/dev/null; then
+  echo "note: HEAD is not on ${remote}/main yet; pushing the branch first"
+  git push "${remote}" HEAD:main
+fi
+
+git tag -a "${tag}" -m "cut3mf ${version}"
+git push "${remote}" "${tag}"
+echo "tagged and pushed ${tag}; the publish workflow releases it to PyPI"
