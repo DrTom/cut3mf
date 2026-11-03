@@ -54,6 +54,9 @@ def build_parser() -> argparse.ArgumentParser:
                         "or x, -x, y, -y, z, -z (default: top)")
     p.add_argument("--eps", type=float, default=0.001,
                    help="extra cut depth against coplanar slivers, mm (default 0.001)")
+    p.add_argument("--separate", action="store_true",
+                   help="3MF: write each body as its own object instead of "
+                        "one object with several parts")
     p.add_argument("-q", "--quiet", action="store_true", help="only print errors")
     p.add_argument("-V", "--version", action="version", version=f"%(prog)s {__version__}")
     return p
@@ -66,13 +69,13 @@ def main(argv: list[str] | None = None) -> int:
                         format="%(message)s")
     try:
         r = cut_file(args.input, args.output, axis=args.axis, depth=args.depth,
-                     at=args.at, eps=args.eps)
+                     at=args.at, eps=args.eps, separate=args.separate)
     except (CutError, OSError, ValueError) as e:
         print(f"cut3mf: error: {e}", file=sys.stderr)
         return 1
     if not args.quiet:
         print(f"cut at {r.axis}={r.cut:.3f} mm (outermost {r.extreme:.3f} mm), "
-              f"{len(r.kept)} object(s) -> {r.output}")
+              f"{len(r.kept)} part(s) -> {r.output}")
     return 0
 
 

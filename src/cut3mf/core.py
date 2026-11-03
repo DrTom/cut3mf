@@ -83,8 +83,14 @@ def cut_scene(
     depth: float = 1.0,
     at: float | None = None,
     eps: float = 0.001,
+    group: str | None = None,
 ) -> tuple[trimesh.Scene, dict]:
-    """Cut a slab off one face of a scene. Returns (new scene, info dict)."""
+    """Cut a slab off one face of a scene. Returns (new scene, info dict).
+
+    With ``group``, all kept bodies become parts of one parent node of that
+    name. In 3MF this is one object with components, which slicers load as a
+    single object with several parts instead of separate objects.
+    """
     ai, sign, axis_name = parse_axis(axis)
 
     # Bake transforms so all objects share one coordinate system.
@@ -109,9 +115,8 @@ def cut_scene(
     normal[ai] = -sign
     offset = -sign * cut
 
-    out = trimesh.Scene()
-    out.units = "millimeters"
-    kept, dropped = [], []
+    results: dict[str, trimesh.Trimesh] = {}
+    dropped = []
     for name, g in geoms.items():
         if not g.is_watertight:
             log.warning("'%s' is not watertight, trying anyway", name)
@@ -130,16 +135,26 @@ def cut_scene(
             log.info("'%s' lies completely in the removed slab, dropped", name)
             dropped.append(name)
             continue
-        out.add_geometry(res, node_name=name, geom_name=name)
-        kept.append(name)
+        results[name] = res
 
-    if not kept:
+    if not results:
         raise CutError(
             f"nothing left after cutting at {axis_name}={cut:.3f} mm; "
             "check --depth, --axis and the model's units"
         )
+
+    out = trimesh.Scene()
+    out.units = "millimeters"
+    parent = None
+    if group is not None:
+        parent = group
+        while parent in results:
+            parent += "_group"
+        out.graph.update(frame_from=out.graph.base_frame, frame_to=parent)
+    for name, res in results.items():
+        out.add_geometry(res, node_name=name, geom_name=name, parent_node_name=parent)
     return out, {"axis": axis_name, "cut": cut, "extreme": extreme,
-                 "kept": kept, "dropped": dropped}
+                 "kept": list(results), "dropped": dropped}
 
 
 def default_output(path: Path) -> Path:
@@ -149,11 +164,19 @@ def default_output(path: Path) -> Path:
 def cut_file(
     input: str | Path,
     output: str | Path | None = None,
+    *,
+    separate: bool = False,
     **kwargs,
 ) -> CutResult:
-    """Cut a mesh file and write the result. kwargs go to :func:`cut_scene`."""
+    """Cut a mesh file and write the result. kwargs go to :func:`cut_scene`.
+
+    3MF output is written as one object with the bodies as its parts, unless
+    ``separate`` is set, which writes each body as its own object.
+    """
     src = Path(input)
     dst = Path(output) if output else default_output(src)
+    if not separate and dst.suffix.lower() == ".3mf":
+        kwargs.setdefault("group", src.stem)
     scene, info = cut_scene(load_scene(src), **kwargs)
     scene.export(dst)
     return CutResult(output=dst, **info)

@@ -7,7 +7,7 @@ surface, the many separate letter bodies often cause trouble, in the CAD tool,
 on export, or in the slicer. Model a thin "helper plate" (e.g. 1 mm) on top of
 the surface that holds the letters together, export, then let `cut3mf` remove
 that plate. You get clean, watertight letter bodies flush with the surface,
-still as separate objects, so you can assign them their own filament.
+as separate parts of one object, so you can assign them their own filament.
 
 It works with any CAD tool that exports 3MF, STL or OBJ (Onshape, Fusion,
 FreeCAD, SolidWorks, ...) and any slicer that imports them (Bambu Studio,
@@ -34,14 +34,18 @@ cut3mf part.3mf --at 14.5          # keep everything below Z = 14.5 mm
 | `-a, --axis` | Face with the plate: `top`, `bottom`, `front`, `back`, `left`, `right`, or `x`, `-x`, `y`, `-y`, `z`, `-z` (default `top`) |
 | `--at` | Cut at an absolute coordinate (mm) instead of a depth |
 | `-o, --output` | Output file (default `<input>_cut.<ext>`) |
+| `--separate` | 3MF: write each body as its own object instead of one object with parts |
 | `--eps` | Extra cut depth against coplanar slivers, mm (default 0.001) |
 
 ### How it works
 
 - All objects are measured together, so every object is cut at the same plane.
 - 3MF units are respected and converted to millimeters (some tools, e.g. Onshape, export in meters). STL has no units and is taken as millimeters.
-- Use 3MF if you want separate objects (e.g. for a second filament); STL stores
-  only one combined mesh.
+- 3MF output is one object whose bodies are its parts (3MF components), so
+  slicers such as Bambu Studio, OrcaSlicer and PrusaSlicer load it as a single
+  object with several parts, each of which can get its own filament. Use
+  `--separate` to get independent objects instead. STL stores only one
+  combined mesh.
 - The cut uses the [Manifold](https://github.com/elalish/manifold) kernel, so cut faces are closed and results stay watertight.
 - The cut goes 1 µm deeper than requested, because the plate's underside usually lies exactly on the cut plane and an exact cut leaves zero-thickness slivers.
 

@@ -96,3 +96,28 @@ def test_cli(tmp_path, capsys):
     assert (tmp_path / "o.3mf").exists()
     assert main([str(src), "-d", "100"]) == 1
     assert "nothing left" in capsys.readouterr().err
+
+
+def _model_xml(path):
+    from lxml import etree
+    root = etree.fromstring(zipfile.ZipFile(path).read("3D/3dmodel.model"))
+    ns = {"m": root.nsmap[None]}
+    return root, ns
+
+
+def test_3mf_is_one_object_with_parts(tmp_path):
+    r = cut_file(_model(tmp_path / "m.3mf"))
+    root, ns = _model_xml(r.output)
+    items = root.findall("m:build/m:item", ns)
+    assert len(items) == 1                                   # one object on the plate
+    parent = root.find(f"m:resources/m:object[@id='{items[0].get('objectid')}']", ns)
+    assert parent.get("name") == "m"
+    assert len(parent.findall("m:components/m:component", ns)) == 2
+    assert set(_load(r.output).geometry) == {"body", "text"}
+
+
+def test_3mf_separate_objects(tmp_path):
+    r = cut_file(_model(tmp_path / "m.3mf"), separate=True)
+    root, ns = _model_xml(r.output)
+    assert len(root.findall("m:build/m:item", ns)) == 2
+    assert root.find("m:resources/m:object/m:components", ns) is None
