@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cut3mf"
-version = "0.1.0"
+version = "0.2.0"
 description = "Cut a slab off one face of a 3MF/STL model before slicing, e.g. a helper plate holding embedded text together"
 readme = "README.md"
 license = "MIT"
