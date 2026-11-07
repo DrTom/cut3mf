@@ -44,15 +44,24 @@ cut3mf part.3mf --at 14.5          # keep everything below Z = 14.5 mm
 - 3MF output is one object whose bodies are its parts (3MF components), so
   slicers such as Bambu Studio, OrcaSlicer and PrusaSlicer load it as a single
   object with several parts, each of which can get its own filament. Use
-  `--separate` to get independent objects instead. STL stores only one
+  `--separate` to get independent objects instead.
+- Part names come from the input. Bambu Studio and OrcaSlicer read part names
+  only from their own `Metadata/model_settings.config`, so cut3mf adds a
+  minimal one (names only, no settings). Because of it, Bambu Studio treats
+  the file as a project and asks "open as project or import geometry only"
+  when objects are already on the plate. Either choice keeps the names.
+- Object colors from the input 3MF are kept (color groups or base materials,
+  as written by e.g. Onshape or Fusion). For Bambu Studio and OrcaSlicer each
+  color also gets its own filament slot, numbered in the input's color order.
+  Other metadata of the input (CAD tool data, thumbnails) is not copied. STL stores only one
   combined mesh.
 - The cut uses the [Manifold](https://github.com/elalish/manifold) kernel, so cut faces are closed and results stay watertight.
 - The cut goes 1 µm deeper than requested, because the plate's underside usually lies exactly on the cut plane and an exact cut leaves zero-thickness slivers.
 
 Limits: the cut is a flat plane, and the plate must be the outermost part of the
-model in the chosen direction. 3MF output keeps the objects and their names, but
-not slicer project data such as filament assignments or print settings, so
-cut the exported model before you set it up in the slicer.
+model in the chosen direction. 3MF output keeps the objects, their names and
+colors, but not slicer project data such as filament presets or print
+settings, so cut the exported model before you set it up in the slicer.
 
 ### Python API
 

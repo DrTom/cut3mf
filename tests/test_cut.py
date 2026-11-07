@@ -121,3 +121,61 @@ def test_3mf_separate_objects(tmp_path):
     root, ns = _model_xml(r.output)
     assert len(root.findall("m:build/m:item", ns)) == 2
     assert root.find("m:resources/m:object/m:components", ns) is None
+
+
+def test_3mf_part_names_for_bambu(tmp_path):
+    from lxml import etree
+    r = cut_file(_model(tmp_path / "m.3mf"))
+    with zipfile.ZipFile(r.output) as z:
+        assert {i.date_time for i in z.infolist()} == {(1980, 1, 1, 0, 0, 0)}
+        config = etree.fromstring(z.read("Metadata/model_settings.config"))
+    names = [m.get("value") for m in config.iterfind("object/part/metadata[@key='name']")]
+    assert names == ["body", "text"]
+    assert config.find("object/metadata[@key='name']").get("value") == "m"
+
+
+def test_3mf_separate_has_no_bambu_config(tmp_path):
+    r = cut_file(_model(tmp_path / "m.3mf"), separate=True)
+    assert "Metadata/model_settings.config" not in zipfile.ZipFile(r.output).namelist()
+
+
+def _color(path: Path) -> Path:
+    """Color the model like Onshape does: one color group, set per object."""
+    with zipfile.ZipFile(path) as z:
+        files = {n: z.read(n) for n in z.namelist()}
+    xml = files["3D/3dmodel.model"].decode()
+    xml = xml.replace("<resources>", '<resources><m:colorgroup id="9">'
+                      '<m:color color="#EAEAEA"/><m:color color="#A5A5A5FF"/></m:colorgroup>', 1)
+    xml = xml.replace('name="text" type="model"', 'name="text" type="model" pid="9" pindex="0"')
+    xml = xml.replace('name="body" type="model"', 'name="body" type="model" pid="9" pindex="1"')
+    files["3D/3dmodel.model"] = xml.encode()
+    with zipfile.ZipFile(path, "w", zipfile.ZIP_DEFLATED) as z:
+        for n, data in files.items():
+            z.writestr(n, data)
+    return path
+
+
+def _object_colors(root, ns):
+    groups = {g.get("id"): [c.get("color") for c in g] for g in root.iter(
+        "{http://schemas.microsoft.com/3dmanufacturing/material/2015/02}colorgroup")}
+    return {o.get("name"): groups[o.get("pid")][int(o.get("pindex"))]
+            for o in root.findall("m:resources/m:object[@pid]", ns)}
+
+
+def test_3mf_colors_kept(tmp_path):
+    from lxml import etree
+    src = _color(_model(tmp_path / "m.3mf"))
+    r = cut_file(src)
+    root, ns = _model_xml(r.output)
+    assert _object_colors(root, ns) == {"text": "#EAEAEAFF", "body": "#A5A5A5FF"}
+    config = etree.fromstring(zipfile.ZipFile(r.output).read("Metadata/model_settings.config"))
+    filaments = {p.find("metadata[@key='name']").get("value"):
+                 p.find("metadata[@key='extruder']").get("value")
+                 for p in config.iterfind("object/part")}
+    assert filaments == {"text": "1", "body": "2"}           # input color order
+
+
+def test_3mf_colors_kept_separate(tmp_path):
+    r = cut_file(_color(_model(tmp_path / "m.3mf")), separate=True)
+    root, ns = _model_xml(r.output)
+    assert _object_colors(root, ns) == {"text": "#EAEAEAFF", "body": "#A5A5A5FF"}
